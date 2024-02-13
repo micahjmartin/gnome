@@ -1,0 +1,67 @@
+def glob(s, pattern):
+    #if pattern == s or pattern == "*":
+    #    return True
+    p = pattern.split("*")
+    # Check the first chunk
+    chunk = p.pop(0)
+    if not s.startswith(chunk):
+        return False
+    s = s[len(chunk):]
+
+    # Check the last chunk
+    if p:
+        chunk = p.pop()
+        if chunk:
+            if not s.endswith(chunk):
+                return False
+            s = s[:-len(chunk)]
+    
+    # Check all the middle chunks
+    for part in p:
+        if part not in s:
+            return False
+        s = s[s.index(part)+1:]
+    return True
+
+def test(tests: list):
+    for i in tests:
+        ret = i.pop()
+        if glob(*i) != ret:
+            print("[!] FAILED glob(" + i[0], i[1]+"). expected", ret, "got", not ret, "\n")
+        else:
+            print("[+] glob(" + i[0], i[1]+") =", ret,"\n")
+test([
+    # Basics
+    ["banana", "banana", True],
+    ["banana", "ban*na", True],
+    ["banana", "*na", True],
+    ["banana", "bana*", True],
+    ["banana", "*", True],
+    ["banana", "**", True],
+    ["banana", "***", True],
+    # Basic failures
+    ["banana", "bann*", False],
+    ["banana", "*nanana", False],
+    ["banana", "nanana", False],
+    # Complex single char
+    ["banana", "b*n*a", True],
+    ["banana", "*n*a", True],
+    ["banana", "b*n*", True],
+    # Single char failures
+    ["banana", "b*x*a", False],
+    ["banana", "bana*a*a", False],
+    ["banana", "*ab*a", False],
+    ["banana", "b*a*n", False],
+    # multi word
+    ["dog cat bat zoo", "dog*bat*zoo", True],
+    ["dog cat bat zoo", "*bat*zoo", True],
+    ["dog cat bat zoo", "dog*bat*", True],
+    ["dog cat bat zoo", "dog*at*at*", True],
+    ["dog cat bat zoo", "*zoo*", True],
+    # Multi word failures
+    ["dog cat bat zoo", "*zoo*bat", False],
+    ["dog cat bat zoo", "dog*zoo*bat", False],
+    ["dog cat bat zoo", "dog**bat*bat", False],
+    ["dog cat bat zoo", "dog*at*at", False],
+    ["dog cat bat zoo", "dog*at*at*at", False],
+])
