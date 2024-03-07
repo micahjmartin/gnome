@@ -12,5 +12,5 @@ func main() {
 		fmt.Println("USAGE: main <script.eld>")
 		os.Exit(1)
 	}
-	gnome.Run(os.Args[1])
+	gnome.Run()
 }
