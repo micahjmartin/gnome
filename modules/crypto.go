@@ -172,12 +172,12 @@ func cryptoHashFile(thread *starlark.Thread, _ *starlark.Builtin, args starlark.
 	return starlark.String(res), nil
 }
 
-var Crypto = Module{
-	"from_json":        starlark.NewBuiltin("", cryptoFromJson),
-	"to_json":          starlark.NewBuiltin("", cryptoToJson),
-	"aes_encrypt_file": starlark.NewBuiltin("", cryptoAesEncrypt),
-	"aes_decrypt_file": starlark.NewBuiltin("", cryptoAesDecrypt),
-	"encode_b64":       starlark.NewBuiltin("", cryptoEncodeB64),
-	"decode_b64":       starlark.NewBuiltin("", cryptoDecodeB64),
-	"hash_file":        starlark.NewBuiltin("", cryptoHashFile),
-}
+var Crypto = NewModule("crypto", map[string]Function{
+	"from_json":        cryptoFromJson,
+	"to_json":          cryptoToJson,
+	"aes_encrypt_file": cryptoAesEncrypt,
+	"aes_decrypt_file": cryptoAesDecrypt,
+	"encode_b64":       cryptoEncodeB64,
+	"decode_b64":       cryptoDecodeB64,
+	"hash_file":        cryptoHashFile,
+})

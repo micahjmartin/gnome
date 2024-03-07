@@ -7,7 +7,20 @@ import (
 	"go.starlark.net/starlark"
 )
 
+type Function func(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error)
+
 type Module starlark.StringDict
+
+func NewModule(name string, funcs map[string]Function) Module {
+	m := Module{}
+	for k, f := range funcs {
+		if f == nil {
+			f = notImplemented
+		}
+		m[k] = starlark.NewBuiltin(name+"."+k, f)
+	}
+	return m
+}
 
 func (m Module) Hash() (uint32, error) {
 	return 0, fmt.Errorf("library is unhashable")
@@ -52,6 +65,8 @@ func ToStarlarkValue(value interface{}) (starlark.Value, error) {
 		return starlark.None, nil
 	case bool:
 		return starlark.Bool(v), nil
+	case int:
+		return starlark.MakeInt(v), nil
 	case float64:
 		if v == float64(int64(v)) {
 			return starlark.MakeInt(int(v)), nil
@@ -59,6 +74,18 @@ func ToStarlarkValue(value interface{}) (starlark.Value, error) {
 		return starlark.Float(v), nil
 	case string:
 		return starlark.String(v), nil
+	case []string:
+		list := starlark.NewList(nil)
+		for _, elem := range v {
+			list.Append(starlark.String(elem))
+		}
+		return list, nil
+	case []int:
+		list := starlark.NewList(nil)
+		for _, elem := range v {
+			list.Append(starlark.MakeInt(elem))
+		}
+		return list, nil
 	case []interface{}:
 		list := starlark.NewList(nil)
 		for _, elem := range v {
@@ -153,4 +180,8 @@ func ToGolangValue(val starlark.Value) (interface{}, error) {
 		// Handle other Starlark types or return an error as needed
 		return nil, fmt.Errorf("unsupported Starlark type: %v", val.Type())
 	}
+}
+
+func notImplemented(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	return nil, fmt.Errorf("%s not impemented", thread.CallFrame(0).Name)
 }

@@ -10,7 +10,7 @@ import (
 )
 
 func Run(script string) {
-	thread := &starlark.Thread{Name: "my thread"}
+	thread := &starlark.Thread{Name: os.Args[0]}
 	opts := &syntax.FileOptions{
 		Set:             true,
 		While:           true,
@@ -19,9 +19,18 @@ func Run(script string) {
 		Recursion:       false,
 	}
 	libs := starlark.StringDict{
-		"crypto": &modules.Crypto,
-		"assets": &modules.Assets,
+		"assets":  &modules.Assets,
+		"crypto":  &modules.Crypto,
+		"file":    &modules.File,
+		"http":    &modules.Http,
+		"pivot":   &modules.Pivot,
+		"process": &modules.Process,
+		"regex":   &modules.Regex,
+		"report":  &modules.Report,
+		"sys":     &modules.Sys,
+		"time":    &modules.Time,
 	}
+
 	_, err := starlark.ExecFileOptions(opts, thread, script, nil, libs)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[!] Failed to run script: %v", err)
