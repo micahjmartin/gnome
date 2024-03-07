@@ -67,6 +67,8 @@ func ToStarlarkValue(value interface{}) (starlark.Value, error) {
 		return starlark.Bool(v), nil
 	case int:
 		return starlark.MakeInt(v), nil
+	case int64:
+		return starlark.MakeInt64(v), nil
 	case float64:
 		if v == float64(int64(v)) {
 			return starlark.MakeInt(int(v)), nil
