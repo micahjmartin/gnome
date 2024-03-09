@@ -1,2 +1,3 @@
 *.eldr*
 *.enc
+!cmd/example/0_init.eldr

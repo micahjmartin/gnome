@@ -1,8 +1,6 @@
 package gnome
 
 import (
-	"embed"
-	_ "embed"
 	"fmt"
 	"io/fs"
 	"os"
@@ -13,22 +11,22 @@ import (
 	"go.starlark.net/syntax"
 )
 
-//go:embed docs
-var assets embed.FS
-
 type script struct {
 	name string
 	src  interface{}
 }
 
-// Run a stark script, passing in the previous globals if specified
-func Run() {
-	// Set the asset locker to whatever we have specified
-	modules.SetAssetLocker(assets)
+func SetAssetLocker(f fs.FS) {
+	modules.SetAssetLocker(f)
+}
 
+// Run a stark script, passing in the previous globals if specified
+func Run(scripts []string) error {
+	// Set the asset locker to whatever we have specified
+	assets := modules.GetAssetLocker()
 	scripts_to_run := make([]script, 0, 1)
-	if modules.AssetLocker != nil {
-		err := fs.WalkDir(modules.AssetLocker, ".", func(path string, d fs.DirEntry, err error) error {
+	if assets != nil {
+		err := fs.WalkDir(assets, ".", func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
@@ -38,7 +36,7 @@ func Run() {
 			if d.IsDir() {
 				return nil
 			}
-			buf, err := fs.ReadFile(modules.AssetLocker, path)
+			buf, err := fs.ReadFile(assets, path)
 			if err != nil {
 				return nil
 			}
@@ -46,11 +44,12 @@ func Run() {
 			return nil
 		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[!] loading script from fs: %v\n", err)
+			return fmt.Errorf("failed loading script from assets: %v", err)
 		}
 	}
-	if len(os.Args) > 1 {
-		scripts_to_run = append(scripts_to_run, script{os.Args[1], nil})
+
+	for _, s := range scripts {
+		scripts_to_run = append(scripts_to_run, script{s, nil})
 	}
 
 	globals := starlark.StringDict{}
@@ -58,9 +57,10 @@ func Run() {
 	for _, s := range scripts_to_run {
 		globals, err = run(s.name, s.src, globals)
 		if err != nil {
-			fmt.Printf("[!] '%s' failed: %v\n", s.name, err)
+			continue
 		}
 	}
+	return nil
 }
 
 func run(name string, src interface{}, globals starlark.StringDict) (starlark.StringDict, error) {

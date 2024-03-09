@@ -85,9 +85,10 @@ func fallback(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple,
 		argsActual = append(argsActual, i)
 	}
 
+	assets := modules.GetAssetLocker()
 	// First, if this matches an asset, call the asset
-	if modules.AssetLocker != nil {
-		if f, err := modules.AssetLocker.Open(code.GoString()); err == nil {
+	if assets != nil {
+		if f, err := assets.Open(code.GoString()); err == nil {
 			defer f.Close()
 			flag := unix.MFD_CLOEXEC
 			// if close-on-exec flag has been set when fd points to a script,
