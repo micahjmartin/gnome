@@ -175,6 +175,24 @@ func fileWrite(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	return starlark.None, os.WriteFile(src.GoString(), []byte(contents.GoString()), 0644)
 }
 
+// Chmod a file *nix only
+func fileChmod(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var file starlark.String
+	var permissions starlark.Int
+	if err := starlark.UnpackPositionalArgs("", args, kwargs, 2, &file, &permissions); err != nil {
+		return nil, err
+	}
+
+	if runtime.GOOS != "linux" && runtime.GOOS != "bsd" {
+		return starlark.None, fmt.Errorf("file.chmod not implemented on PLATFORM_WINDOWS")
+	}
+	perm, ok := permissions.Int64()
+	if !ok {
+		return starlark.None, fmt.Errorf("invalid int: %v", permissions.String())
+	}
+	return starlark.None, os.Chmod(file.GoString(), os.FileMode(perm))
+}
+
 var File = NewModule("file", map[string]Function{
 	"append":      fileAppend,
 	"compress":    nil,
@@ -196,4 +214,5 @@ var File = NewModule("file", map[string]Function{
 	"timestomp":   nil,
 	"write":       fileWrite,
 	"find":        nil,
+	"chmod":       fileChmod,
 })

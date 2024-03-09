@@ -21,7 +21,7 @@ func SetAssetLocker(f fs.FS) {
 }
 
 // Run a stark script, passing in the previous globals if specified
-func Run(scripts []string) error {
+func Run(scripts []string, errorHandler func(script string, err error) error) error {
 	// Set the asset locker to whatever we have specified
 	assets := modules.GetAssetLocker()
 	scripts_to_run := make([]script, 0, 1)
@@ -44,7 +44,9 @@ func Run(scripts []string) error {
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("failed loading script from assets: %v", err)
+			if err := errorHandler("", fmt.Errorf("failed loading script from assets: %v", err)); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -57,7 +59,9 @@ func Run(scripts []string) error {
 	for _, s := range scripts_to_run {
 		globals, err = run(s.name, s.src, globals)
 		if err != nil {
-			continue
+			if err := errorHandler(s.name, err); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

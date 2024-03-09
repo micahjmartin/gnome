@@ -4,6 +4,7 @@
 Not all functions are implemented, but this is something that can change. Make an issue or PR if you would like a specific function implmented. I am currently only implementing functions that I need/want as I need them
 
 Other small differences are listed below:
+- [ ] `file.chmod` to chmod files
 - [ ] `process.kill` takes an optional kill signal to send
 - [ ] `sys.get_user` return `groups` and `group_ids`
 - [ ] `assets` is backed by an embed.FS or any other fs.FS compatible interface
