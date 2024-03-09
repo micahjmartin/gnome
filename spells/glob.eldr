@@ -23,13 +23,13 @@ def glob(s, pattern):
         s = s[s.index(part)+1:]
     return True
 
-def test(tests: list):
+def test(tests):
     for i in tests:
         ret = i.pop()
         if glob(*i) != ret:
-            print("[!] FAILED glob(" + i[0], i[1]+"). expected", ret, "got", not ret, "\n")
+            print("[!] FAILED glob(" + i[0], i[1]+"). expected", ret, "got", not ret)
         else:
-            print("[+] glob(" + i[0], i[1]+") =", ret,"\n")
+            print("[+] glob(" + i[0], i[1]+") =", ret)
 test([
     # Basics
     ["banana", "banana", True],

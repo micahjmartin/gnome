@@ -114,6 +114,16 @@ func SysGetEnv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple
 	}
 	return d, nil
 }
+
+func SysSetEnv(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var key starlark.String
+	var value starlark.String
+	if err := starlark.UnpackPositionalArgs("", args, kwargs, 2, &key, &value); err != nil {
+		return nil, err
+	}
+	return starlark.None, os.Setenv(key.GoString(), value.GoString())
+}
+
 func SysGetOs(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	if err := starlark.UnpackPositionalArgs("", args, kwargs, 0); err != nil {
 		return nil, err
@@ -234,6 +244,7 @@ var Sys = NewModule("sys", map[string]Function{
 	"dll_reflect":   nil,
 	"exec":          SysExec,
 	"get_env":       SysGetEnv,
+	"set_env":       SysSetEnv,
 	"get_ip":        nil,
 	"get_os":        SysGetOs,
 	"get_pid":       SysGetPid,

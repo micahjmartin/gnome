@@ -1,8 +1,10 @@
 package gnome
 
 import (
-	"bytes"
+	"embed"
+	_ "embed"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -11,21 +13,58 @@ import (
 	"go.starlark.net/syntax"
 )
 
-// Kill the entire starlark thread
-var exitCode int64
+//go:embed docs
+var assets embed.FS
 
-func exit(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var code starlark.Int
-	if err := starlark.UnpackPositionalArgs("", args, kwargs, 1, &code); err != nil {
-		return nil, err
-	}
-	exitCode, _ = code.Int64()
-	thread.Cancel("user exit")
-	return starlark.None, nil
+type script struct {
+	name string
+	src  interface{}
 }
 
+// Run a stark script, passing in the previous globals if specified
 func Run() {
-	thread := &starlark.Thread{Name: os.Args[0]}
+	// Set the asset locker to whatever we have specified
+	modules.SetAssetLocker(assets)
+
+	scripts_to_run := make([]script, 0, 1)
+	if modules.AssetLocker != nil {
+		err := fs.WalkDir(modules.AssetLocker, ".", func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if !strings.HasSuffix(path, ".eldr") && !strings.HasSuffix(path, ".eldritch") {
+				return nil
+			}
+			if d.IsDir() {
+				return nil
+			}
+			buf, err := fs.ReadFile(modules.AssetLocker, path)
+			if err != nil {
+				return nil
+			}
+			scripts_to_run = append(scripts_to_run, script{path, buf})
+			return nil
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[!] loading script from fs: %v\n", err)
+		}
+	}
+	if len(os.Args) > 1 {
+		scripts_to_run = append(scripts_to_run, script{os.Args[1], nil})
+	}
+
+	globals := starlark.StringDict{}
+	var err error
+	for _, s := range scripts_to_run {
+		globals, err = run(s.name, s.src, globals)
+		if err != nil {
+			fmt.Printf("[!] '%s' failed: %v\n", s.name, err)
+		}
+	}
+}
+
+func run(name string, src interface{}, globals starlark.StringDict) (starlark.StringDict, error) {
+	thread := &starlark.Thread{Name: name}
 	opts := &syntax.FileOptions{
 		Set:             true,
 		While:           true,
@@ -46,32 +85,42 @@ func Run() {
 		"sys":      &modules.Sys,
 		"time":     &modules.Time,
 		"exit":     starlark.NewBuiltin("exit", exit),
+		"quit":     starlark.NewBuiltin("exit", quit),
 		"fallback": starlark.NewBuiltin("fallback", fallback),
 	}
 
-	if modules.AssetLocker != nil {
-		for _, f := range modules.AssetLocker.Files() {
-			if strings.HasSuffix(f, ".eldr") || strings.HasSuffix(f, ".eldritch") {
-				var buf bytes.Buffer
-				modules.AssetLocker.ReadFile(f, &buf)
-				_, err := starlark.ExecFileOptions(opts, thread, f, buf.Bytes(), libs)
-				if err != nil {
-					if _, ok := err.(*starlark.EvalError); ok {
-						os.Exit(int(exitCode))
-					}
-					fmt.Fprintf(os.Stderr, "[!] Failed to run script: %v", err)
-				}
-			}
-		}
+	// Add the globals into the environment
+	for k, v := range globals {
+		libs[k] = v
 	}
-	if len(os.Args) > 1 {
-		_, err := starlark.ExecFileOptions(opts, thread, os.Args[1], nil, libs)
-		if err != nil {
-			if _, ok := err.(*starlark.EvalError); ok {
-				os.Exit(int(exitCode))
+	res, err := starlark.ExecFileOptions(opts, thread, name, src, libs)
+	if err != nil {
+		if e, ok := err.(*starlark.EvalError); ok {
+			// Check what the error message is, that is how we determined if we quit or exited
+			lines := strings.SplitN(e.Msg, ": ", 2)
+			if len(lines) < 2 {
+				return nil, err
 			}
-			fmt.Fprintf(os.Stderr, "[!] Failed to run script: %v", err)
+			if lines[1] == "user exit" {
+				// On exit calls, the interpreter also dies
+				os.Exit(int(exitCode))
+			} else if lines[1] == "user quit" {
+				// on quit calls, only the script exits, not an error
+				err = nil
+			} else {
+				return nil, err
+			}
+		} else {
+			return nil, err
 		}
 	}
 
+	if globals == nil {
+		globals = make(starlark.StringDict, len(res))
+	}
+	// Update globals with the results of this script
+	for k, v := range res {
+		globals[k] = v
+	}
+	return globals, nil
 }
