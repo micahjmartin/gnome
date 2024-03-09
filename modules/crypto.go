@@ -60,26 +60,6 @@ func cryptoToJson(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tu
 	return starlark.String(string(res)), err
 }
 
-func cryptoAesEncrypt(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var src starlark.String
-	var dst starlark.String
-	var key starlark.String
-	if err := starlark.UnpackPositionalArgs("", args, kwargs, 3, &src, &dst, &key); err != nil {
-		return nil, err
-	}
-	return nil, fmt.Errorf("crypto.aes_encrypt_file not impemented")
-}
-
-func cryptoAesDecrypt(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var src starlark.String
-	var dst starlark.String
-	var key starlark.String
-	if err := starlark.UnpackPositionalArgs("", args, kwargs, 3, &src, &dst, &key); err != nil {
-		return nil, err
-	}
-	return nil, fmt.Errorf("crypto.aes_decrypt_file not impemented")
-}
-
 func cryptoEncodeB64(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var str starlark.String
 	var typ starlark.String
@@ -175,8 +155,8 @@ func cryptoHashFile(thread *starlark.Thread, _ *starlark.Builtin, args starlark.
 var Crypto = NewModule("crypto", map[string]Function{
 	"from_json":        cryptoFromJson,
 	"to_json":          cryptoToJson,
-	"aes_encrypt_file": cryptoAesEncrypt,
-	"aes_decrypt_file": cryptoAesDecrypt,
+	"aes_encrypt_file": nil,
+	"aes_decrypt_file": nil,
 	"encode_b64":       cryptoEncodeB64,
 	"decode_b64":       cryptoDecodeB64,
 	"hash_file":        cryptoHashFile,

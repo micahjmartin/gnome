@@ -5,6 +5,7 @@ Not all functions are implemented, but this is something that can change. Make a
 
 Other small differences are listed below:
 - [ ] `process.kill` takes an optional kill signal to send
+- [ ] `sys.get_user` return `groups` and `group_ids`
 - [ ] `assets` is backed by an embed.FS or any other fs.FS compatible interface
 - [ ] `sys.set_env` sets an environment variable
 - [ ] `exit(int)` function has been added to allow any script to kill the interpreter completely

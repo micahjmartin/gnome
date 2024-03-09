@@ -15,7 +15,7 @@ func NewModule(name string, funcs map[string]Function) Module {
 	m := Module{}
 	for k, f := range funcs {
 		if f == nil {
-			f = notImplemented
+			f = notImplemented(name, k)
 		}
 		m[k] = starlark.NewBuiltin(name+"."+k, f)
 	}
@@ -88,7 +88,17 @@ func ToStarlarkValue(value interface{}) (starlark.Value, error) {
 			list.Append(starlark.MakeInt(elem))
 		}
 		return list, nil
-	case []interface{}:
+	case []any:
+		list := starlark.NewList(nil)
+		for _, elem := range v {
+			stValue, err := ToStarlarkValue(elem)
+			if err != nil {
+				return nil, err
+			}
+			list.Append(stValue)
+		}
+		return list, nil
+	case []map[string]interface{}:
 		list := starlark.NewList(nil)
 		for _, elem := range v {
 			stValue, err := ToStarlarkValue(elem)
@@ -184,6 +194,8 @@ func ToGolangValue(val starlark.Value) (interface{}, error) {
 	}
 }
 
-func notImplemented(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return nil, fmt.Errorf("%s not impemented", thread.CallFrame(0).Name)
+func notImplemented(module, name string) Function {
+	return func(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+		return nil, fmt.Errorf("%s.%s not implemented", module, name)
+	}
 }

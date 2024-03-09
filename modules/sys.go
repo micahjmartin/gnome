@@ -3,11 +3,11 @@ package modules
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"go.starlark.net/starlark"
@@ -194,12 +194,11 @@ func userFromUid(uid int) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	group_ids := make([]int, 0, len(gids))
+	group_ids := make([]string, 0, len(gids))
 	groups := make([]string, 0, len(gids))
 
 	for _, gid := range gids {
-		i, _ := strconv.Atoi(gid)
-		group_ids = append(group_ids, i)
+		group_ids = append(group_ids, gid)
 		g, err := user.LookupGroupId(gid)
 		if err != nil {
 			return nil, err
@@ -238,6 +237,35 @@ func SysGetUser(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tupl
 	return ToStarlarkValue(m)
 }
 
+func SysGetIp(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	if err := starlark.UnpackPositionalArgs("", args, kwargs, 0); err != nil {
+		return nil, err
+	}
+
+	ifs, err := net.Interfaces()
+	if err != nil {
+		return starlark.None, err
+	}
+
+	res := make([]map[string]interface{}, 0, len(ifs))
+	for _, i := range ifs {
+		ips, err := i.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		ipsStr := make([]string, 0, len(ips))
+		for _, ip := range ips {
+			ipsStr = append(ipsStr, ip.String())
+		}
+		res = append(res, map[string]interface{}{
+			"mac":  i.HardwareAddr.String(),
+			"name": i.Name,
+			"ips":  ipsStr,
+		})
+	}
+	return ToStarlarkValue(res)
+}
+
 // Intentionally not implemented. These functions dont, error, they just return nil
 var Sys = NewModule("sys", map[string]Function{
 	"dll_inject":    nil,
@@ -245,7 +273,7 @@ var Sys = NewModule("sys", map[string]Function{
 	"exec":          SysExec,
 	"get_env":       SysGetEnv,
 	"set_env":       SysSetEnv,
-	"get_ip":        nil,
+	"get_ip":        SysGetIp,
 	"get_os":        SysGetOs,
 	"get_pid":       SysGetPid,
 	"get_reg":       nil,
