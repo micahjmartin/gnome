@@ -13,11 +13,12 @@ func processInfo(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tup
 	}
 	// TODO: Fill out the missing fields
 	cwd, _ := os.Getwd()
+	exe, _ := os.Executable()
 	d := map[string]interface{}{
 		"pid":                  os.Getpid(),
 		"name":                 os.Args[0],
 		"cmd":                  os.Args,
-		"exe":                  nil,
+		"exe":                  exe,
 		"environ":              os.Environ(),
 		"cwd":                  cwd,
 		"root":                 nil,

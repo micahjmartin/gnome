@@ -124,6 +124,9 @@ func run(name string, src interface{}, globals starlark.StringDict) (starlark.St
 	}
 	// Update globals with the results of this script
 	for k, v := range res {
+		if strings.HasPrefix(k, "_") {
+			continue
+		}
 		globals[k] = v
 	}
 	return globals, nil
